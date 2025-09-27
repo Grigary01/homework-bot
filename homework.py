@@ -1,15 +1,19 @@
-...
+import os
+from dotenv import load_dotenv
+import requests
+import logging
 
 load_dotenv()
 
 
-PRACTICUM_TOKEN = ...
-TELEGRAM_TOKEN = ...
-TELEGRAM_CHAT_ID = ...
+PRACTICUM_TOKEN = 'PRACTICUM_TOKEN'
+TELEGRAM_TOKEN = 'TELEGRAM_TOKEN'
+TELEGRAM_CHAT_ID = 'TELEGRAM_CHAT_ID'
 
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+
 
 
 HOMEWORK_VERDICTS = {
@@ -18,9 +22,16 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 def check_tokens():
-    ...
+    try:
+        requests.get(ENDPOINT)
+    except Exception as error:
+        logging.error(f'Ошибка при запросе к основному API: {error}')
 
 
 def send_message(bot, message):
@@ -28,7 +39,12 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    ...
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params={'timestamp': timestamp})
+        return response.json()
+    except requests.exceptions.RequestException as error:
+        logging.error(f'Ошибка при запросе к единстевнному эндпоинту API: {error}')
+        
 
 
 def check_response(response):
