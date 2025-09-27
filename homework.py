@@ -1,7 +1,9 @@
 import os
+from datetime import time
 from dotenv import load_dotenv
 import requests
 import logging
+from telebot import TeleBot
 
 load_dotenv()
 
@@ -35,7 +37,7 @@ def check_tokens():
 
 
 def send_message(bot, message):
-    ...
+    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
 
 
 def get_api_answer(timestamp):
@@ -48,12 +50,18 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
-    ...
-
+    if isinstance(response, dict) and isinstance(response['homeworks'], list):
+        return response.json()
+    else:
+        logging.error(f'на соответствие документации из урока «API сервиса Практикум Домашка»')
 
 def parse_status(homework):
-    ...
-
+    if homework['status'] == 'approved':
+        return HOMEWORK_VERDICTS['approved']
+    elif homework['status'] == 'reviewing':
+        return HOMEWORK_VERDICTS['reviewing']
+    elif homework['status'] == 'rejected':
+        return HOMEWORK_VERDICTS['rejected']
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -63,7 +71,7 @@ def main():
     ...
 
     # Создаем объект класса бота
-    bot = ...
+    bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
 
     ...
@@ -71,7 +79,8 @@ def main():
     while True:
         try:
 
-            ...
+            check_tokens()
+            homeworks = get_api_answer(timestamp)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
