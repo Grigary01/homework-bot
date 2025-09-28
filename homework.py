@@ -16,8 +16,6 @@ RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-
-
 HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
@@ -29,34 +27,45 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+
 def check_tokens():
+    """Проверяет доступность переменных окружения."""
     try:
-        requests.get(ENDPOINT)
+        tokens = ['TELEGRAM_TOKEN', 'PRACTICUM_TOKEN', 'TELEGRAM_CHAT_ID']
+        for token in tokens:
+            if not globals().get(token):
+                raise Exception(f"Отстутсвует: {token}")
     except Exception as error:
-        logging.error(f'Ошибка при запросе к основному API: {error}')
+        logging.error(f"{error}. Продолжать работу бота нет смысла.")
 
 
 def send_message(bot, message):
+    """ОТправляет сообщение боту."""
     bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
 
 
 def get_api_answer(timestamp):
+    """Делает запрос к единственному эндпоинту API-сервиса."""
     try:
         params = {'from_date': timestamp}
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         return response.json()
     except requests.exceptions.RequestException as error:
-        logging.error(f'Ошибка при запросе к единстевнному эндпоинту API: {error}')
-        
+        logging.error(
+            f'Ошибка при запросе к единстевнному эндпоинту API: {error}')
 
 
 def check_response(response):
+    """Проверяет документаицю."""
     if isinstance(response, dict) and isinstance(response['homeworks'], list):
         return response.json()
     else:
-        logging.error(f'на соответствие документации из урока «API сервиса Практикум Домашка»')
+        logging.error(
+            'Не совпадает документация с «API сервиса Практикум Домашка»')
+
 
 def parse_status(homework):
+    """Делает запрос к единственному эндпоинту API-сервисаю."""
     homework_name = homework['homework_name']
     if homework['status'] == 'approved':
         verdict = HOMEWORK_VERDICTS['approved']
@@ -69,10 +78,6 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-
-    check_tokens()
-
-    # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = 0
     status = get_api_answer(timestamp)
@@ -80,8 +85,9 @@ def main():
 
     while True:
         try:
-            
-            check_tokens()
+            if not check_tokens():
+                logging.error("Продолжать работу больше нету смысла")
+                return
             homeworks = get_api_answer(timestamp)
             homework_status = homeworks['homeworks'][-1]['status']
             if homework_status != status:
@@ -95,7 +101,6 @@ def main():
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
             time.sleep(30)
-      
     bot.polling(none_stop=True)
 
 
