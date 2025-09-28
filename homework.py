@@ -62,8 +62,6 @@ def get_api_answer(timestamp):
 
 def check_response(response):
     """Проверяет документаицю."""
-    if "homeworks" not in response:
-        raise NotKeyHomeworksExceptions('Нету ключа homeworks в словаре')
     if isinstance(response, dict) and isinstance(response['homeworks'], list):
         return response.json()
     else:
