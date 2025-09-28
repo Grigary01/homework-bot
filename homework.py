@@ -1,5 +1,5 @@
 import os
-from datetime import time
+import time
 from dotenv import load_dotenv
 import requests
 import logging
@@ -8,9 +8,9 @@ from telebot import TeleBot
 load_dotenv()
 
 
-PRACTICUM_TOKEN = 'PRACTICUM_TOKEN'
-TELEGRAM_TOKEN = 'TELEGRAM_TOKEN'
-TELEGRAM_CHAT_ID = 'TELEGRAM_CHAT_ID'
+PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
@@ -42,7 +42,8 @@ def send_message(bot, message):
 
 def get_api_answer(timestamp):
     try:
-        response = requests.get(ENDPOINT, headers=HEADERS, params={'timestamp': timestamp})
+        params = {'from_date': timestamp}
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         return response.json()
     except requests.exceptions.RequestException as error:
         logging.error(f'Ошибка при запросе к единстевнному эндпоинту API: {error}')
@@ -56,36 +57,46 @@ def check_response(response):
         logging.error(f'на соответствие документации из урока «API сервиса Практикум Домашка»')
 
 def parse_status(homework):
+    homework_name = homework['homework_name']
     if homework['status'] == 'approved':
-        return HOMEWORK_VERDICTS['approved']
+        verdict = HOMEWORK_VERDICTS['approved']
     elif homework['status'] == 'reviewing':
-        return HOMEWORK_VERDICTS['reviewing']
+        verdict = HOMEWORK_VERDICTS['reviewing']
     elif homework['status'] == 'rejected':
-        return HOMEWORK_VERDICTS['rejected']
+        verdict = HOMEWORK_VERDICTS['rejected']
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
     """Основная логика работы бота."""
 
-    ...
+    check_tokens()
 
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time())
-
-    ...
+    timestamp = 0
+    status = get_api_answer(timestamp)
+    status = status['homeworks'][-1]['status']
 
     while True:
         try:
-
+            
             check_tokens()
             homeworks = get_api_answer(timestamp)
+            homework_status = homeworks['homeworks'][-1]['status']
+            if homework_status != status:
+                a = parse_status(homeworks['homeworks'][-1])
+                send_message(bot, a)
+                status = homeworks['homeworks'][-1]['status']
+                timestamp = int(time.time())
+            time.sleep(30)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            ...
-        ...
+            send_message(bot, message)
+            time.sleep(30)
+      
+    bot.polling(none_stop=True)
 
 
 if __name__ == '__main__':
