@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import requests
 import logging
 from telebot import TeleBot
+from .exceptions import NotKeyHomeworksExceptions
 
 load_dotenv()
 
@@ -49,11 +50,11 @@ def get_api_answer(timestamp):
     try:
         params = {'from_date': timestamp}
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-        if response.status != 200:
+        if response.status_code != 200:
             logging.error(f'API вернул код {response.status_code}')
             raise requests.exceptions.HTTPError(
                 f'API вернул код {response.status_code}')
-        return response.json()
+        return check_response(response)
     except requests.exceptions.RequestException as error:
         logging.error(
             f'Ошибка при запросе к единстевнному эндпоинту API: {error}')
@@ -61,11 +62,14 @@ def get_api_answer(timestamp):
 
 def check_response(response):
     """Проверяет документаицю."""
+    if "homeworks" not in response:
+        raise NotKeyHomeworksExceptions('Нету ключа homeworks в словаре')
     if isinstance(response, dict) and isinstance(response['homeworks'], list):
         return response.json()
     else:
-        logging.error(
-            'Не совпадает документация с «API сервиса Практикум Домашка»')
+        logging.error('API структура не соответствует ожидаемым типам данных')
+        raise TypeError(
+            'API структура не соответствует ожидаемым типам данных')
 
 
 def parse_status(homework):
