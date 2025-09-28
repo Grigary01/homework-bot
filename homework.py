@@ -49,6 +49,10 @@ def get_api_answer(timestamp):
     try:
         params = {'from_date': timestamp}
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        if response.status != 200:
+            logging.error(f'API вернул код {response.status_code}')
+            raise requests.exceptions.HTTPError(
+                f'API вернул код {response.status_code}')
         return response.json()
     except requests.exceptions.RequestException as error:
         logging.error(
