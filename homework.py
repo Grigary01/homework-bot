@@ -54,7 +54,7 @@ def get_api_answer(timestamp):
             logging.error(f'API вернул код {response.status_code}')
             raise requests.exceptions.HTTPError(
                 f'API вернул код {response.status_code}')
-        return check_response(response)
+        return response.json()
     except requests.exceptions.RequestException as error:
         logging.error(
             f'Ошибка при запросе к единстевнному эндпоинту API: {error}')
