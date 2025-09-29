@@ -1,2 +1,0 @@
-class NotKeyHomeworksExceptions(Exception):
-    pass
