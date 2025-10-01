@@ -5,22 +5,13 @@ from dotenv import load_dotenv
 import requests
 import logging
 from telebot import TeleBot
+import telebot
 import sys
 from logging.handlers import RotatingFileHandler
+from exceptions.exception import APIError, StatusCodeError, NotTokenError
+from http import HTTPStatus
 
 load_dotenv()
-
-
-class APIError(Exception):
-    """APIError."""
-
-    pass
-
-
-class StatusCodeError(Exception):
-    """StatusCodeError."""
-
-    pass
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -37,32 +28,13 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-logging.basicConfig(
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='program.log'
-)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = RotatingFileHandler(
-    'my_logger.log', maxBytes=50000000, backupCount=5)
-logger.addHandler(handler)
-
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    if not TELEGRAM_TOKEN:
+    if not TELEGRAM_TOKEN or not PRACTICUM_TOKEN or not TELEGRAM_CHAT_ID:
         logging.critical(
-            'Отсутствует обязательная переменная окружения: TELEGRAM_TOKEN')
-        raise Exception('Отстутсвует TELEGRAM_TOKEN')
-    if not PRACTICUM_TOKEN:
-        logging.critical(
-            'Отсутствует обязательная переменная окружения: PRACTICUM_TOKEN')
-        raise Exception('Отсутствует PRACTICUN_TOKEN')
-    if not TELEGRAM_CHAT_ID:
-        logging.critical(
-            'Отсутствует обязательная переменная окружения: TELEGRAM_CHAT_ID')
-        raise Exception('Отсутствует TELEGRAM_CHAT_ID')
+            'Отсутствует обязательная переменная окружения')
+        raise NotTokenError('Отстутсвует обязательная переменная окружения')
     return True
 
 
@@ -71,7 +43,7 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logging.debug(f'Сообщение успешно отправлено в телеграмм: {message}')
-    except Exception as error:
+    except (telebot.apihelper.ApiException, requests.RequestException)as error:
         logging.error(f'Ошибка при отправке сообщения в телеграмм: {error}')
 
 
@@ -80,7 +52,7 @@ def get_api_answer(timestamp):
     try:
         params = {'from_date': timestamp}
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             logging.error(f'API вернул код {response.status_code}')
             raise StatusCodeError('Ошибка при запросе к API')
         return response.json()
@@ -153,4 +125,13 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        filename='program.log'
+    )
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler(
+        'my_logger.log', maxBytes=50000000, backupCount=5)
+    logger.addHandler(handler)
     main()
