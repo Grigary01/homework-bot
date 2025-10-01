@@ -106,14 +106,17 @@ def main():
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
+            current_status = None
             if homeworks:
                 homework = homeworks[-1]
                 current_status = homework.get('status')
-            if current_status and current_status != previous_status:
-                message = parse_status(homework)
-                send_message(bot, message)
-                previous_status = current_status
-                logging.info('Сообщение отправлено в Telegram')
+                if current_status and current_status != previous_status:
+                    message = parse_status(homework)
+                    send_message(bot, message)
+                    previous_status = current_status
+                    logging.info('Сообщение отправлено в Telegram')
+                else:
+                    logging.debug('Статус домашней работы не изменился')
             else:
                 logging.debug('Нет домашних работ для проверки')
             time.sleep(RETRY_PERIOD)
