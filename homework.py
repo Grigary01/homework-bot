@@ -101,6 +101,15 @@ def main():
     except Exception as error:
         logging.critical(f'Программа принудительно остановлена: {error}')
         sys.exit(1)
+    try:
+        bot.send_message(
+            TELEGRAM_CHAT_ID,
+            "Бот проверки статусов домашних работ запущен и начал "
+            "мониторинг."
+        )
+        logging.info('Отправлено сообщение о запуске бота')
+    except Exception as error:
+        logging.error(f'Ошибка при отправке сообщения о запуске: {error}')
 
     while True:
         try:
